@@ -4,7 +4,7 @@ icon:
 	cd cmd && rsrc -ico icon.ico -o rsrc.syso
 
 build: icon
-	go build -ldflags="-H windowsgui" -o bin/pc-agent.exe ./cmd/
+	go build -ldflags="-H windowsgui" -o bin/shutdown-agent.exe ./cmd/
 
 build-debug: icon
 	go build -o bin/pc-agent.exe ./cmd/

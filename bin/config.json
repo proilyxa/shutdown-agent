@@ -1,5 +1,5 @@
 {
-  "port": 9877,
+  "port": 9876,
   "shutdown_timeout_sec": 10,
   "autostart": true
 }

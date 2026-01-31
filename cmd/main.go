@@ -234,13 +234,12 @@ func (s *Server) Start(port int, app *App) error {
 	})
 	mux.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
 		cfg := app.getConfig()
-		if err := scheduleShutdown(cfg.ShutdownTimeoutSec); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte(err.Error()))
-			return
-		}
+
+		// Show confirmation dialog and schedule shutdown
+		go scheduleShutdownWithConfirmation(cfg.ShutdownTimeoutSec)
+
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("shutdown scheduled"))
+		_, _ = w.Write([]byte("shutdown confirmation dialog shown"))
 	})
 
 	addr := fmt.Sprintf(":%d", port)
@@ -268,6 +267,71 @@ func (s *Server) Stop() {
 		_ = s.srv.Close()
 		s.srv = nil
 	}
+}
+
+func scheduleShutdownWithConfirmation(timeoutSec int) {
+	message := fmt.Sprintf("PC shutdown requested!\n\nThis window will auto-close in %d seconds.\n\nYES - Shutdown now\nNO - Cancel shutdown", timeoutSec)
+	result := showTimedMessageBox("⚠ Shutdown Scheduled", message, timeoutSec)
+
+	const (
+		BUTTON_YES     = 6
+		BUTTON_NO      = 7
+		BUTTON_TIMEOUT = -1
+	)
+
+	fmt.Printf("Shutdown dialog result: %d\n", result)
+
+	switch result {
+	case BUTTON_NO:
+		// User cancelled - do nothing
+		fmt.Println("Shutdown cancelled by user")
+		return
+	case BUTTON_YES:
+		// Shutdown immediately
+		fmt.Println("Shutdown initiated immediately by user")
+		scheduleShutdown(0)
+	case BUTTON_TIMEOUT:
+		// Timeout expired - shutdown now
+		fmt.Println("Shutdown dialog timeout - initiating shutdown")
+		scheduleShutdown(0)
+	default:
+		// Unknown result - log it
+		fmt.Printf("Unknown dialog result: %d - initiating shutdown\n", result)
+		scheduleShutdown(0)
+	}
+}
+
+func showTimedMessageBox(title, text string, timeoutSec int) int {
+	// WScript.Shell Popup parameters:
+	// - text: message to display
+	// - timeout: seconds before auto-close (-1 for no timeout)
+	// - title: dialog title
+	// - type: 4 = Yes/No buttons, 48 = Warning icon
+	//
+	// Return values:
+	// 6 = Yes, 7 = No, -1 = Timeout
+
+	script := fmt.Sprintf(
+		`$result = (New-Object -ComObject WScript.Shell).Popup('%s', %d, '%s', 4 + 48); exit $result`,
+		text, timeoutSec, title,
+	)
+
+	cmd := exec.Command("powershell", "-WindowStyle", "Hidden", "-NoProfile", "-Command", script)
+	_ = cmd.Run()
+
+	// Get exit code from ProcessState
+	if cmd.ProcessState != nil {
+		exitCode := cmd.ProcessState.ExitCode()
+
+		// Handle special case: -1 becomes 4294967295 on Windows
+		if exitCode == 4294967295 || exitCode == 255 {
+			return -1
+		}
+
+		return exitCode
+	}
+
+	return -1 // Default to timeout
 }
 
 func scheduleShutdown(timeoutSec int) error {
