@@ -4,13 +4,13 @@ icon:
 	cd cmd && rsrc -ico icon.ico -o rsrc.syso
 
 build: icon
-	go build -ldflags="-H windowsgui" -o bin/shutdown-agent.exe ./cmd/
+	go build -ldflags="-s -w -H windowsgui" -o bin/shutdown-agent.exe ./cmd/
 
 build-debug: icon
-	go build -o bin/pc-agent.exe ./cmd/
+	go build -o bin/shutdown-agent.exe ./cmd/
 
 clean:
-	rm -f bin/pc-agent.exe cmd/rsrc.syso
+	rm -f bin/shutdown-agent.exe cmd/rsrc.syso
 
 run: build
-	./bin/pc-agent.exe
+	./bin/shutdown-agent.exe

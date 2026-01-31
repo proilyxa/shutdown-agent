@@ -121,7 +121,7 @@ func onReady(app *App) {
 					// Apply autostart
 					setAutostart(newCfg.Autostart)
 
-					// Update UI
+					// Update UI (without firewall check to avoid PowerShell window)
 					app.mStatus.SetTitle(fmt.Sprintf("Port: %d | Timeout: %ds", newCfg.Port, newCfg.ShutdownTimeoutSec))
 					app.mAutostart.SetTitle(getAutostartText(newCfg.Autostart))
 				}
