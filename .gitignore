@@ -5,9 +5,6 @@ bin/*-debug.exe
 *.so
 *.dylib
 
-# Windows resources
-cmd/rsrc.syso
-
 # Test binary
 *.test
 
