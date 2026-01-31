@@ -195,7 +195,7 @@ func getAutostartText(enabled bool) string {
 	if enabled {
 		return "Autostart ✓"
 	}
-	return "Autostart ✗"
+	return "Autostart"
 }
 
 func onExit(app *App) {
