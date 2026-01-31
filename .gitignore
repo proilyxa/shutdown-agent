@@ -1,8 +1,12 @@
 # Binaries
-bin/
+bin/*.exe
+bin/*-debug.exe
 *.dll
 *.so
 *.dylib
+
+# Windows resources
+cmd/rsrc.syso
 
 # Test binary
 *.test

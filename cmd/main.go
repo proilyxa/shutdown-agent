@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"syscall"
+	"unsafe"
 
 	"github.com/getlantern/systray"
 	"golang.org/x/sys/windows/registry"
@@ -147,8 +149,8 @@ func onReady(app *App) {
 	}()
 }
 
-func showAbout(cfg Config) {
-	msg := fmt.Sprintf(`PC Agent v1.0
+func getInfoText(cfg Config) string {
+	return fmt.Sprintf(`PC Agent v1.0
 Remote Shutdown Service
 
 Current Settings:
@@ -163,17 +165,37 @@ API Endpoints:
 Example:
 curl http://localhost:%d/shutdown`,
 		cfg.Port, cfg.ShutdownTimeoutSec, cfg.Autostart, cfg.Port)
+}
 
-	// Show message box via powershell
-	script := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', 'About PC Agent', 'OK', 'Information')`, msg)
-	exec.Command("powershell", "-NoProfile", "-Command", script).Start()
+func showAbout(cfg Config) {
+	showMessageBox("About PC Agent", getInfoText(cfg))
+}
+
+func showMessageBox(title, text string) {
+	const (
+		MB_OK              = 0x00000000
+		MB_ICONINFORMATION = 0x00000040
+	)
+
+	user32 := syscall.NewLazyDLL("user32.dll")
+	messageBox := user32.NewProc("MessageBoxW")
+
+	titlePtr, _ := syscall.UTF16PtrFromString(title)
+	textPtr, _ := syscall.UTF16PtrFromString(text)
+
+	messageBox.Call(
+		0, // hWnd - no parent window
+		uintptr(unsafe.Pointer(textPtr)),
+		uintptr(unsafe.Pointer(titlePtr)),
+		uintptr(MB_OK|MB_ICONINFORMATION),
+	)
 }
 
 func getAutostartText(enabled bool) string {
 	if enabled {
-		return "✓ Autostart Enabled"
+		return "Autostart ✓"
 	}
-	return "Autostart Disabled"
+	return "Autostart ✗"
 }
 
 func onExit(app *App) {
