@@ -239,7 +239,11 @@ func (s *Server) Start(port int, app *App) error {
 		go scheduleShutdownWithConfirmation(cfg.ShutdownTimeoutSec)
 
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("shutdown confirmation dialog shown"))
+		if cfg.ShutdownTimeoutSec <= 0 {
+			_, _ = w.Write([]byte("shutdown initiated immediately"))
+		} else {
+			_, _ = w.Write([]byte("shutdown confirmation dialog shown"))
+		}
 	})
 
 	addr := fmt.Sprintf(":%d", port)
@@ -270,6 +274,13 @@ func (s *Server) Stop() {
 }
 
 func scheduleShutdownWithConfirmation(timeoutSec int) {
+	// No timeout configured: skip the confirmation dialog entirely and shut down now.
+	if timeoutSec <= 0 {
+		fmt.Println("Shutdown timeout <= 0: shutting down immediately without confirmation")
+		scheduleShutdown(0)
+		return
+	}
+
 	message := fmt.Sprintf("PC shutdown requested!\n\nThis window will auto-close in %d seconds.\n\nYES - Shutdown now\nNO - Cancel shutdown", timeoutSec)
 	result := showTimedMessageBox("⚠ Shutdown Scheduled", message, timeoutSec)
 
